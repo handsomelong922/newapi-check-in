@@ -227,8 +227,7 @@ def format_check_in_notification(detail: dict) -> str:
 	"""
 	lines = [
 		f'[签到] {detail["name"]}',
-		'  ━━━━━━━━━━━━━━━━━━━━',
-		f'     💵 余额: ${detail["after_quota"]:.2f}  |  📊 累计消耗: ${detail["after_used"]:.2f}',
+		f'  💵 余额: ${detail["after_quota"]:.2f}  |  📊 累计消耗: ${detail["after_used"]:.2f}',
 	]
 
 	# 判断是否有变化
@@ -236,8 +235,6 @@ def format_check_in_notification(detail: dict) -> str:
 	has_usage = detail['usage_increase'] != 0
 
 	if has_reward or has_usage:
-		lines.append('  ━━━━━━━━━━━━━━━━━━━━')
-
 		# 已签到但期间有使用
 		if not has_reward and has_usage:
 			lines.append('  ℹ️  今日已签到（期间有使用）')
@@ -247,7 +244,7 @@ def format_check_in_notification(detail: dict) -> str:
 			lines.append(f'  🎁 签到获得: +${detail["check_in_reward"]:.2f}')
 	else:
 		# 无任何变化
-		lines.extend(['  ━━━━━━━━━━━━━━━━━━━━', '  ℹ️  今日已签到，无变化'])
+		lines.append('  ℹ️  今日已签到，无变化')
 
 	return '\n'.join(lines)
 
@@ -463,7 +460,7 @@ async def main():
 
 		time_info = f'[时间] 执行时间: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'
 
-		notify_content = '\n\n'.join([time_info, '\n'.join(notification_content), '\n'.join(summary)])
+		notify_content = '\n\n'.join([time_info, '\n━━━━━━━━━━━━━━━━━━━━\n'.join(notification_content), '\n'.join(summary)])
 
 		print(notify_content)
 		notify.push_message('New api签到通知', notify_content, msg_type='text')
