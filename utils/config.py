@@ -92,7 +92,7 @@ class AppConfig:
 			'agentrouter': ProviderConfig(
 				name='agentrouter',
 				domain='https://agentrouter.org',
-				login_path='/login',
+				login_path='/console/personal',
 				sign_in_path=None,  # 无需签到接口，查询用户信息时自动完成签到
 				user_info_path='/api/user/self',
 				api_user_key='new-api-user',

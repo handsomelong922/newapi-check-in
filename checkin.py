@@ -165,17 +165,41 @@ async def get_waf_cookies_with_playwright(account_name: str, login_url: str,
                 except Exception:
                     await page.wait_for_timeout(3000)
 
+                # 阿里云 WAF 站点可能先返回挑战页，需要额外等待并刷新
+                try:
+                    page_html = (await page.content()).lower()
+                    if 'aliyun_waf_aa' in page_html:
+                        print(
+                            f'[INFO] {account_name}: Detected Aliyun WAF challenge, waiting and reloading...'
+                        )
+                        await page.wait_for_timeout(4000)
+                        await page.reload(wait_until='networkidle')
+                        await page.wait_for_timeout(1500)
+                except Exception:
+                    pass
+
                 cookies = await page.context.cookies()
 
+                # 返回所有 cookies，并优先统计 WAF 相关 cookies
+                all_cookies = {}
                 waf_cookies = {}
                 for cookie in cookies:
                     cookie_name = cookie.get('name')
                     cookie_value = cookie.get('value')
-                    if cookie_name in required_cookies and cookie_value is not None:
+                    if not cookie_name or cookie_value is None:
+                        continue
+
+                    all_cookies[cookie_name] = cookie_value
+
+                    name_lower = cookie_name.lower()
+                    if cookie_name in required_cookies or any(
+                            key in name_lower
+                            for key in ('waf', 'acw', 'aliyun')):
                         waf_cookies[cookie_name] = cookie_value
 
                 print(
-                    f'[INFO] {account_name}: Got {len(waf_cookies)} WAF cookies'
+                    f'[INFO] {account_name}: Got {len(all_cookies)} cookies, '
+                    f'{len(waf_cookies)} considered WAF-related'
                 )
 
                 missing_cookies = [
@@ -184,18 +208,21 @@ async def get_waf_cookies_with_playwright(account_name: str, login_url: str,
 
                 if missing_cookies:
                     print(
-                        f'[FAILED] {account_name}: Missing WAF cookies: {missing_cookies}'
+                        f'[WARNING] {account_name}: Missing required WAF cookies: {missing_cookies}'
                     )
+
+                if not waf_cookies and not all_cookies:
+                    print(f'[FAILED] {account_name}: No cookies collected')
                     await context.close()
                     return None
 
                 print(
-                    f'[SUCCESS] {account_name}: Successfully got all WAF cookies'
+                    f'[SUCCESS] {account_name}: Successfully prepared browser cookies'
                 )
 
                 await context.close()
 
-                return waf_cookies
+                return all_cookies
 
             except Exception as e:
                 print(
@@ -319,10 +346,11 @@ def get_user_info(client, headers, user_info_url: str):
                 body_preview = response.text[:120].replace('\n', ' ').replace(
                     '\r', ' ')
                 return {
-                    'success': False,
-                    'error': (
-                        'Failed to get user info: invalid JSON, '
-                        f'content-type={content_type}, body={body_preview}')
+                    'success':
+                    False,
+                    'error':
+                    ('Failed to get user info: invalid JSON, '
+                     f'content-type={content_type}, body={body_preview}')
                 }
 
             if data.get('success'):
@@ -575,6 +603,21 @@ async def check_in_account(account: AccountConfig, account_index: int,
             print(user_info_before['display'])
         elif user_info_before:
             print(user_info_before.get('error', 'Unknown error'))
+
+        # 如果命中阿里云 WAF 挑战页，先刷新 WAF cookies 再重试一次
+        if (provider_config.needs_waf_cookies() and user_info_before
+                and not user_info_before.get('success')):
+            error_text = str(user_info_before.get('error', '')).lower()
+            if 'aliyun_waf_aa' in error_text or 'text/html' in error_text:
+                print(
+                    f'[AUTH] {account_name}: WAF challenge detected, refreshing WAF cookies and retrying...'
+                )
+                refreshed = await prepare_cookies(account_name,
+                                                  provider_config, {})
+                if refreshed:
+                    client.cookies.update(refreshed)
+                    user_info_before = get_user_info(client, headers,
+                                                     user_info_url)
 
         if not user_info_before or not user_info_before.get('success'):
             if account.has_access_token():
