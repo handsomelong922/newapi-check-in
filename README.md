@@ -7,7 +7,7 @@
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 [![License](https://img.shields.io/github/license/millylee/anyrouter-check-in)](LICENSE)
 
-多平台多账号自动签到，理论上支持所有 NewAPI、OneAPI 平台，目前内置支持 Any Router 与 Agent Router，其它可根据文档进行摸索配置。
+多平台多账号自动签到，理论上支持所有 NewAPI、OneAPI 平台，目前内置支持 Any Router、Agent Router、CallXYQ，其它可根据文档进行配置。
 
 推荐搭配使用[Auo](https://github.com/millylee/auo)，支持任意 Claude Code Token 切换的工具。
 
@@ -19,6 +19,8 @@
 
 - ✅ 多平台（兼容 NewAPI 与 OneAPI）
 - ✅ 单个/多账号自动签到
+- ✅ 多认证方式（`access_token` / `username+password` / `cookies`）
+- ✅ 认证失败自动回退（优先 Token，其次账号密码，最后 Cookies）
 - ✅ 多种机器人通知（可选）
 - ✅ 绕过 WAF 限制
 
@@ -30,12 +32,15 @@
 
 ### 2. 获取账号信息
 
-对于每个需要签到的账号，你需要获取：(可借助 [在线 Secrets 配置生成器](https://millylee.github.io/anyrouter-check-in/))
+对于每个需要签到的账号，你需要准备：(可借助 [在线 Secrets 配置生成器](https://millylee.github.io/anyrouter-check-in/))
 
-1. **Cookies**: 用于身份验证
-2. **API User**: 用于请求头的 new-api-user 参数（自己配置其它平台时该值需要注意匹配）
+1. **API User（必需）**：用于请求头的 `new-api-user` 参数（自己配置其它平台时该值需要匹配）
+2. **认证信息（三选一，推荐前两者同时配置）**：
+  - `access_token`（推荐，便于自动化）
+  - `username + password`（推荐作为兜底）
+  - `cookies`（兼容旧配置）
 
-#### 获取 Cookies：
+#### 获取 Cookies（可选，兼容旧方案）：
 
 1. 打开浏览器，访问 https://anyrouter.top/
 2. 登录你的账户
@@ -44,7 +49,7 @@
 5. 找到 "Cookies" 选项
 6. 复制所有 cookies
 
-#### 获取 API User：
+#### 获取 API User（必需）：
 
 按照下方图片教程操作获得。
 
@@ -66,17 +71,18 @@
 [
   {
     "name": "我的主账号",
+    "provider": "anyrouter",
     "cookies": {
       "session": "account1_session_value"
     },
     "api_user": "account1_api_user_id"
   },
   {
-    "name": "备用账号",
-    "provider": "agentrouter",
-    "cookies": {
-      "session": "account2_session_value"
-    },
+    "name": "CallXYQ 主账号",
+    "provider": "callxyq",
+    "access_token": "account2_access_token",
+    "username": "account2_username",
+    "password": "account2_password",
     "api_user": "account2_api_user_id"
   }
 ]
@@ -84,20 +90,30 @@
 
 **字段说明**：
 
-- `cookies` (必需)：用于身份验证的 cookies 数据
-- `api_user` (必需)：用于请求头的 new-api-user 参数
+- `api_user` (必需)：用于请求头的 `new-api-user` 参数
+- `access_token` (可选)：系统访问令牌，脚本会尝试多种头/会话方式兼容
+- `username` + `password` (可选)：账号密码登录，可作为 Token 失效时兜底
+- `cookies` (可选)：会话 Cookie（兼容旧配置）
 - `provider` (可选)：指定使用的服务商，默认为 `anyrouter`
 - `name` (可选)：自定义账号显示名称，用于通知和日志中标识账号
+
+**认证优先级（脚本内置）**：
+
+1. `access_token`
+2. `username + password`
+3. `cookies`
+
+若前一种方式失败，会自动回退到后一种方式。
 
 **默认值说明**：
 
 - 如果未提供 `provider` 字段，默认使用 `anyrouter`（向后兼容）
 - 如果未提供 `name` 字段，会使用 `Account 1`、`Account 2` 等默认名称
-- `anyrouter` 与 `agentrouter` 配置已内置，无需填写
+- `anyrouter`、`agentrouter`、`callxyq` 配置已内置，无需填写
 
 接下来获取 cookies 与 api_user 的值。
 
-通过 F12 工具，切到 Application 面板，拿到 session 的值，最好重新登录下，该值 1 个月有效期，但有可能提前失效，失效后报 401 错误，到时请再重新获取。
+通过 F12 工具，切到 Application 面板，拿到 session 的值。注意：Cookie 可能提前失效，失效后通常会报 401，建议同时配置 `access_token` 和 `username/password` 提升稳定性。
 
 ![获取 cookies](./assets/request-session.png)
 
@@ -129,10 +145,11 @@
 
 ## 注意事项
 
-- 请确保每个账号的 cookies 和 API User 都是正确的
+- 请确保每个账号的 `api_user` 正确，且至少提供一种认证方式
+- 若追求长期稳定，建议同时配置 `access_token` 与 `username/password`
 - 可以在 Actions 页面查看详细的运行日志
 - 支持部分账号失败，只要有账号成功签到，整个任务就不会失败
-- 报 401 错误，请重新获取 cookies，理论 1 个月失效，但有 Bug，详见 [#6](https://github.com/millylee/anyrouter-check-in/issues/6)
+- 报 401 错误时，请优先检查 Token 是否失效、账号密码是否可登录，再检查 Cookie 是否过期
 - 请求 200，但出现 Error 1040（08004）：Too many connections，官方数据库问题，目前已修复，但遇到几次了，详见 [#7](https://github.com/millylee/anyrouter-check-in/issues/7)
 
 ## 配置示例
@@ -160,7 +177,7 @@
 
 ### 多服务商配置
 
-如果你需要同时使用多个服务商（如 anyrouter 和 agentrouter）：
+如果你需要同时使用多个服务商（如 anyrouter、agentrouter、callxyq）：
 
 ```json
 [
@@ -183,9 +200,9 @@
   {
     "name": "CallXYQ 账号",
     "provider": "callxyq",
-    "cookies": {
-      "session": "xyz789session"
-    },
+    "access_token": "callxyq_access_token",
+    "username": "callxyq_username",
+    "password": "callxyq_password",
     "api_user": "user789"
   }
 ]
@@ -227,8 +244,8 @@
 
 **关于 `bypass_method`**：
 
-- 不设置或设置为 `null`：直接使用用户提供的 cookies 进行请求（适合无 WAF 保护的网站）
-- 设置为 `"waf_cookies"`：使用 Playwright 打开浏览器获取 WAF cookies 后再进行请求（适合有 WAF 保护的网站）
+- 不设置或设置为 `null`：不额外获取 WAF Cookies（适合无 WAF 保护的网站）
+- 设置为 `"waf_cookies"`：使用 Playwright 打开浏览器获取 WAF Cookies 后再进行请求（适合有 WAF 保护的网站）
 
 > 注：`anyrouter` 和 `agentrouter` 已内置默认配置，无需在 `PROVIDERS` 中配置
 
@@ -273,10 +290,10 @@
   - `bypass_method: "waf_cookies"`（需要先获取 WAF cookies，然后执行签到）
   - `sign_in_path: "/api/user/sign_in"`
 - `agentrouter`：
-  - `bypass_method: null`（直接使用用户 cookies 执行签到）
-  - `sign_in_path: "/api/user/sign_in"`
+  - `bypass_method: "waf_cookies"`
+  - `sign_in_path: null`（查询用户信息时自动完成签到）
 - `callxyq`：
-  - `bypass_method: null`（直接使用用户 cookies 执行签到）
+  - `bypass_method: null`
   - `sign_in_path: "/api/user/checkin"`（POST 请求）
   - `check_in_method: "POST"`
 
@@ -344,10 +361,12 @@
 如果签到失败，请检查：
 
 1. 账号配置格式是否正确
-2. cookies 是否过期
-3. API User 是否正确
-4. 网站是否更改了签到接口
-5. 查看 Actions 运行日志获取详细错误信息
+2. `api_user` 是否正确（与目标站点请求头一致）
+3. `access_token` 是否失效
+4. 账号密码是否可正常网页登录
+5. Cookies 是否过期（如有配置）
+6. 网站是否更改了登录/签到接口
+7. 查看 Actions 运行日志获取详细错误信息
 
 ## 本地开发环境设置
 
@@ -361,8 +380,8 @@ uv sync --dev
 uv run playwright install chromium
 
 # 创建 .env 文件并配置（注意：JSON 必须是单行格式）
-# 示例：
-# ANYROUTER_ACCOUNTS=[{"name":"账号1","cookies":{"session":"xxx"},"api_user":"12345"}]
+# 示例（JSON 必须单行）：
+# ANYROUTER_ACCOUNTS=[{"name":"账号1","provider":"callxyq","access_token":"xxx","username":"u","password":"p","api_user":"12345"}]
 # PROVIDERS={"agentrouter":{"domain":"https://agentrouter.org"}}
 
 # 运行签到脚本
