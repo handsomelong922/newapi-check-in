@@ -245,7 +245,7 @@ def login_with_credentials(client, account_name: str, provider_config,
         'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36'
     )
 
-    login_paths = ['/api/user/login', '/api/login', '/api/auth/login']
+    login_paths = ['/api/user/login?turnstile=', '/api/user/login', '/api/login', '/api/auth/login']
     payload_candidates = [
         {
             'username': username,
