@@ -155,9 +155,9 @@ class AppConfig:
 				waf_cookie_names=None,
 				check_in_method='POST',
 			),		
-			'rs': ProviderConfig(
-				name='rs',
-				domain='https://newapi.linuxdo.edu.rs',
+			'neb': ProviderConfig(
+				name='neb',
+				domain='https://ai.zzhdsgsss.xyz',
 				login_path='/console/personal',
 				sign_in_path='/api/user/checkin',
 				user_info_path='/api/user/self',
