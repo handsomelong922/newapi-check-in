@@ -188,8 +188,8 @@ class AppConfig:
 				waf_cookie_names=None,
 				check_in_method='POST',
 			),		
-			'het': ProviderConfig(
-				name='het',
+			'heto': ProviderConfig(
+				name='heto',
 				domain='https://hetang.lyvideo.top',
 				login_path='/console/personal',
 				sign_in_path='/api/user/checkin',
