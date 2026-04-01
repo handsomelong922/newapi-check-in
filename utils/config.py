@@ -143,7 +143,7 @@ class AppConfig:
 				bypass_method=None,
 				waf_cookie_names=None,
 				check_in_method='POST',
-			),		
+			),
 			'nih': ProviderConfig(
 				name='nih',
 				domain='https://nih.cc',
@@ -154,7 +154,7 @@ class AppConfig:
 				bypass_method=None,
 				waf_cookie_names=None,
 				check_in_method='POST',
-			),		
+			),
 			'neb': ProviderConfig(
 				name='neb',
 				domain='https://ai.zzhdsgsss.xyz',
@@ -165,7 +165,7 @@ class AppConfig:
 				bypass_method=None,
 				waf_cookie_names=None,
 				check_in_method='POST',
-			),			
+			),
 			'test': ProviderConfig(
 				name='test',
 				domain='https://openai.api-test.us.ci',
@@ -176,7 +176,7 @@ class AppConfig:
 				bypass_method=None,
 				waf_cookie_names=None,
 				check_in_method='POST',
-			),		
+			),
 			'hetang': ProviderConfig(
 				name='hetang',
 				domain='https://hetang.lyvideo.top',
@@ -187,7 +187,7 @@ class AppConfig:
 				bypass_method=None,
 				waf_cookie_names=None,
 				check_in_method='POST',
-			)
+			),
 		}
 
 		# 尝试从环境变量加载自定义 providers
