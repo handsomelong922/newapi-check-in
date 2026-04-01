@@ -190,7 +190,7 @@ class AppConfig:
 			),		
 			'het': ProviderConfig(
 				name='het',
-				domain='http://hetang.lyvideo.top',
+				domain='https://hetang.lyvideo.top',
 				login_path='/console/personal',
 				sign_in_path='/api/user/checkin',
 				user_info_path='/api/user/self',
