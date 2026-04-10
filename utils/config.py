@@ -188,9 +188,9 @@ class AppConfig:
 				waf_cookie_names=None,
 				check_in_method='POST',
 			),
-			'lox': ProviderConfig(
-				name='lox',
-				domain='https://open-ai.silo-clouds.cn',
+			'oai': ProviderConfig(
+				name='oai',
+				domain='https://newapi.zhx47.xyz',
 				login_path='/console/personal',
 				sign_in_path='/api/user/checkin',
 				user_info_path='/api/user/self',
